@@ -37,7 +37,7 @@ services:
     container_name: url_shortener_redis
     ports:
       - "6379:6379"
-    command: redis-server --requirepass your_redis_password  # Optional: Add password
+    command: redis-server --requirepass your_redis_password
     volumes:
       - redis-data:/data
     networks:
