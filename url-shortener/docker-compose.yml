@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # MongoDB Service
+  mongo:
+    image: mongo:6.0
+    container_name: url_shortener_mongo
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=url_shortener
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - url-shortener-net
+    restart: unless-stopped
+
+  # PostgreSQL Service
+  postgres:
+    image: postgres:15
+    container_name: url_shortener_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=your_pg_user
+      - POSTGRES_PASSWORD=your_pg_password
+      - POSTGRES_DB=url_shortener
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - url-shortener-net
+    restart: unless-stopped
+
+  # Redis Service
+  redis:
+    image: redis:7.0
+    container_name: url_shortener_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass your_redis_password  # Optional: Add password
+    volumes:
+      - redis-data:/data
+    networks:
+      - url-shortener-net
+    restart: unless-stopped
+
+# Volumes for data persistence
+volumes:
+  mongo-data:
+  postgres-data:
+  redis-data:
+
+# Network for communication between services
+networks:
+  url-shortener-net:
+    driver: bridge
