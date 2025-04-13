@@ -3,7 +3,16 @@ const config = require('../config');
 const Url = require('../models/mongoUrlModel');
 const { fetchUniqueKey } = require('./keyService');
 
-const redisClient = redis.createClient(config.redisConfig);
+// const redisClient = redis.createClient(config.redisConfig);
+// redisClient.connect();
+
+const redisClient = redis.createClient({
+  socket: {
+    host: config.redisConfig.host,
+    port: parseInt(config.redisConfig.port),
+  },
+  password: config.redisConfig.password,
+});
 redisClient.connect();
 
 async function shortenUrl(longUrl, userId) {
