@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const winston = require('winston');
 const config = require('./config');
 const urlRoutes = require('./routes/urlRoutes');
@@ -28,11 +27,6 @@ app.use((err, req, res, next) => {
   logger.error(err.stack);
   res.status(500).json({ error: 'Internal Server Error' });
 });
-
-// Database Connections
-mongoose.connect(config.mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => logger.info('MongoDB connected'))
-  .catch(err => logger.error(err));
 
 // Start Server
 app.listen(config.port, () => {

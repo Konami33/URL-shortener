@@ -1,20 +1,6 @@
 version: '3.8'
 
 services:
-  # MongoDB Service
-  mongo:
-    image: mongo:6.0
-    container_name: url_shortener_mongo
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_DATABASE=url_shortener
-    volumes:
-      - mongo-data:/data/db
-    networks:
-      - url-shortener-net
-    restart: unless-stopped
-
   # PostgreSQL Service
   postgres:
     image: postgres:15
