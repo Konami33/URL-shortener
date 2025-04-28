@@ -1,10 +1,7 @@
 const redis = require('redis');
 const config = require('../config');
-const Url = require('../models/pgUrlModel');
+const { createUrl, getUrlByShortId } = require('../models/pgUrlModel');
 const { fetchUniqueKey } = require('./keyService');
-
-// const redisClient = redis.createClient(config.redisConfig);
-// redisClient.connect();
 
 const redisClient = redis.createClient({
   socket: {
@@ -23,17 +20,22 @@ async function shortenUrl(longUrl, userId) {
 }
 
 async function getLongUrl(shortUrlId) {
-  // Check cache first
-  const cachedUrl = await redisClient.get(shortUrlId);
-  if (cachedUrl) return cachedUrl;
+  try {
+    // Check cache first
+    const cachedUrl = await redisClient.get(shortUrlId);
+    if (cachedUrl) return cachedUrl;
 
-  // Fallback to Postgres
-  const longUrl = await getUrlByShortId(shortUrlId);
-  if (!longUrl) throw new Error('URL not found');
+    // Fallback to PostgreSQL (Citus)
+    const longUrl = await getUrlByShortId(shortUrlId);
+    if (!longUrl) throw new Error('URL not found');
 
-  // Cache the result
-  await redisClient.setEx(shortUrlId, 3600, longUrl);
-  return longUrl;
+    // Cache the result
+    await redisClient.setEx(shortUrlId, 3600, longUrl);
+    return longUrl;
+  } catch (err) {
+    console.error(`Error retrieving URL for ${shortUrlId}: ${err.message}`);
+    throw err;
+  }
 }
 
 module.exports = { shortenUrl, getLongUrl };

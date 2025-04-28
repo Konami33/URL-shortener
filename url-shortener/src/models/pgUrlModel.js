@@ -8,12 +8,14 @@ async function createUrl(shortUrlId, longUrl, userId) {
     const query = `
         INSERT INTO urls (short_url_id, long_url, user_id)
         VALUES ($1, $2, $3)
+        ON CONFLICT (short_url_id) DO NOTHING
         RETURNING short_url_id
     `;
 
     const values = [shortUrlId, longUrl, userId || null];
 
     const res = await pool.query(query, values);
+    if (!res.rows.length) throw new Error('Failed to create URL (possible conflict)');
     return res.rows[0].short_url_id;
 }
 

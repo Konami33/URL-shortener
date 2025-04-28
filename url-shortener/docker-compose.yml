@@ -40,3 +40,97 @@ volumes:
 networks:
   url-shortener-net:
     driver: bridge
+
+
+
+# version: '3.8'
+
+# services:
+
+#   pgbouncer:
+#     image: edoburu/pgbouncer
+#     container_name: pgbouncer
+#     environment:
+#       - DB_HOST=citus_coordinator
+#       - DB_USER=your_pg_user
+#       - DB_PASSWORD=your_pg_password
+#       - DB_NAME=url_shortener
+#       - POOL_MODE=session
+#     ports:
+#       - "6432:5432"
+#     depends_on:
+#       - citus_coordinator
+#     networks:
+#       - url-shortener-net
+      
+#   # Citus Coordinator
+#   citus_coordinator:
+#     image: citusdata/citus:12.1
+#     container_name: citus_coordinator
+#     environment:
+#       - POSTGRES_USER=your_pg_user
+#       - POSTGRES_PASSWORD=your_pg_password
+#       - POSTGRES_DB=url_shortener
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - citus_coordinator_data:/var/lib/postgresql/data
+#     networks:
+#       - url-shortener-net
+#     restart: unless-stopped
+
+#   # Citus Worker 1
+#   citus_worker_1:
+#     image: citusdata/citus:12.1
+#     container_name: citus_worker_1
+#     environment:
+#       - POSTGRES_USER=your_pg_user
+#       - POSTGRES_PASSWORD=your_pg_password
+#       - POSTGRES_DB=url_shortener
+#     ports:
+#       - "5433:5432" # Different port to avoid conflict
+#     volumes:
+#       - citus_worker_1_data:/var/lib/postgresql/data
+#     networks:
+#       - url-shortener-net
+#     restart: unless-stopped
+
+#   # Citus Worker 2
+#   citus_worker_2:
+#     image: citusdata/citus:12.1
+#     container_name: citus_worker_2
+#     environment:
+#       - POSTGRES_USER=your_pg_user
+#       - POSTGRES_PASSWORD=your_pg_password
+#       - POSTGRES_DB=url_shortener
+#     ports:
+#       - "5434:5432" # Different port
+#     volumes:
+#       - citus_worker_2_data:/var/lib/postgresql/data
+#     networks:
+#       - url-shortener-net
+#     restart: unless-stopped
+
+#   # Redis
+#   redis:
+#     image: redis:7.0
+#     container_name: url_shortener_redis
+#     ports:
+#       - "6379:6379"
+#     command: redis-server --requirepass your_redis_password
+#     volumes:
+#       - redis-data:/data
+#     networks:
+#       - url-shortener-net
+#     restart: unless-stopped
+
+
+# volumes:
+#   citus_coordinator_data:
+#   citus_worker_1_data:
+#   citus_worker_2_data:
+#   redis-data:
+
+# networks:
+#   url-shortener-net:
+#     driver: bridge
