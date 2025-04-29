@@ -382,3 +382,11 @@ all_ips = pulumi.Output.all(
 
 # Create the config file with the IPs once the instances are ready
 all_ips.apply(create_config_file)
+
+
+
+
+
+
+
+
