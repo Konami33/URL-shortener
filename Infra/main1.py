@@ -272,9 +272,9 @@ db_sg = aws.ec2.SecurityGroup("db-sg",
 )
 
 bastion = aws.ec2.Instance("bastion-host",
-    ami="ami-0fa377108253bf620",  # Amazon Linux 2 in ap-southeast-1
+    ami=ami,
     instance_type=instance_type,
-    subnet_id=public_subnets[0].id,
+    subnet_id=public_subnets[1].id,
     vpc_security_group_ids=[bastion_sg.id],
     associate_public_ip_address=True,
     key_name=key_name,
@@ -395,7 +395,7 @@ pgbouncer_instance = aws.ec2.Instance("pgbouncer",
     vpc_security_group_ids=[pgbouncer_sg.id],
     key_name=key_name,
     user_data="""#!/bin/bash
-        apt update && apt install -y pgbouncer
+        apt update && apt install -y pgbouncer postgresql-client
         systemctl enable pgbouncer
         systemctl start pgbouncer
     """,
