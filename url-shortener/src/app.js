@@ -1,10 +1,13 @@
+// Load OpenTelemetry first
 require('./utils/tracing');
+
 const express = require('express');
 const winston = require('winston');
-const { trace, metrics } = require('@opentelemetry/api');
+const { metrics } = require('@opentelemetry/api');
+const { prometheusExporter } = require('./utils/tracing');
 const config = require('./config');
 const urlRoutes = require('./routes/urlRoutes');
- 
+
 const app = express();
 
 // Logger
@@ -14,56 +17,91 @@ const logger = winston.createLogger({
   transports: [new winston.transports.Console()],
 });
 
-// Metrics
+// Create custom metrics
 const meter = metrics.getMeter('url-shortener');
-const requestCounter = meter.createCounter('http_requests_total', {
-  description: 'Total HTTP requests',
+
+// Total HTTP requests
+const httpRequestCounter = meter.createCounter('http_requests_total', {
+  description: 'Total number of HTTP requests',
 });
-const requestDuration = meter.createHistogram('http_request_duration_seconds', {
+
+// HTTP request duration
+const httpRequestDuration = meter.createHistogram('http_request_duration_seconds', {
   description: 'HTTP request duration in seconds',
-  unit: 'seconds',
-  advice: { explicitBucketBoundaries: [0.01, 0.05, 0.1, 0.2, 0.5, 1, 2, 5] },
+});
+
+// Success/failure counter
+const httpResponseCounter = meter.createCounter('http_responses_total', {
+  description: 'Total number of HTTP responses by status code',
+});
+
+// URL operations counter
+const urlOperationsCounter = meter.createCounter('url_operations_total', {
+  description: 'Number of URL shortening operations',
+});
+
+// URL redirect counter
+const urlRedirectCounter = meter.createCounter('url_redirects_total', {
+  description: 'Number of URL redirect operations',
 });
 
 // Middleware
 app.use(express.json());
-// Middleware for tracing and metrics
+
+// Metrics and logging middleware
 app.use((req, res, next) => {
-
+  // Log request
   logger.info(`${req.method} ${req.url}`);
-
-  const tracer = trace.getTracer('url-shortener');
-  tracer.startActiveSpan(`${req.method} ${req.path}`, (span) => {
-    span.setAttribute('http.method', req.method);
-    span.setAttribute('http.route', req.path === '/' ? '/:shortUrlId' : req.path);
-    const startTime = Date.now();
-    res.on('finish', () => {
-      const duration = (Date.now() - startTime) / 1000;
-      span.setAttribute('http.status_code', res.statusCode);
-      requestCounter.add(1, {
-        'http.method': req.method,
-        'http.route': req.path === '/' ? '/:shortUrlId' : req.path,
-        'http.status_code': res.statusCode.toString(),
-      });
-      requestDuration.record(duration, {
-        'http.method': req.method,
-        'http.route': req.path === '/' ? '/:shortUrlId' : req.path,
-        'http.status_code': res.statusCode.toString(),
-      });
-      span.end();
-    });
-    next();
+  
+  // Track start time
+  const startTime = Date.now();
+  
+  // Count request
+  httpRequestCounter.add(1, {
+    method: req.method,
+    route: req.originalUrl,
   });
+  
+  // Track response
+  const originalSend = res.send;
+  res.send = function(...args) {
+    // Calculate duration
+    const duration = (Date.now() - startTime) / 1000; // Convert to seconds
+    
+    // Record request duration
+    httpRequestDuration.record(duration, {
+      method: req.method,
+      route: req.originalUrl,
+    });
+    
+    // Record response status
+    httpResponseCounter.add(1, {
+      method: req.method,
+      route: req.originalUrl,
+      status_code: res.statusCode,
+      status_class: Math.floor(res.statusCode / 100) + 'xx',
+    });
+    
+    // Call original send
+    return originalSend.apply(this, args);
+  };
+  
+  next();
+});
+
+// Expose metrics endpoint
+app.get('/metrics', (req, res) => {
+  return prometheusExporter.getMetricsRequestHandler()(req, res);
 });
 
 // Health Check
-app.get('/health', (req, res) => res.status(200).json({ 
-  status: 'OK' 
-}));
+app.get('/health', (req, res) => res.status(200).json({ status: 'OK' }));
 
-app.get('/metrics', (req, res) => {
-  res.status(200).send('Metrics exported via OTLP');
-});
+// Make metrics available to route handlers
+app.locals.metrics = {
+  urlOperationsCounter,
+  urlRedirectCounter
+};
 
 // Routes
 app.use('/api', urlRoutes);
