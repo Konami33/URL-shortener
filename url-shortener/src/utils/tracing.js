@@ -1,4 +1,3 @@
-// src/tracing.js
 const { NodeSDK } = require('@opentelemetry/sdk-node');
 const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
@@ -7,14 +6,16 @@ const { PeriodicExportingMetricReader } = require('@opentelemetry/sdk-metrics');
 const { PgInstrumentation } = require('@opentelemetry/instrumentation-pg');
 const { RedisInstrumentation } = require('@opentelemetry/instrumentation-redis');
 const { WinstonInstrumentation } = require('@opentelemetry/instrumentation-winston');
+const config = require('../config');
 
 const sdk = new NodeSDK({
+  serviceName: 'url-shortener',
   traceExporter: new OTLPTraceExporter({
-    url: 'http://<monitoring_private_ip>:4318/v1/traces', // Collector endpoint
+    url: config.tracing_endpoint,
   }),
   metricReader: new PeriodicExportingMetricReader({
     exporter: new OTLPMetricExporter({
-      url: 'http://<monitoring_private_ip>:4318/v1/metrics',
+      url: config.metrics_endpoint,
     }),
     exportIntervalMillis: 10000,
   }),
@@ -33,12 +34,6 @@ const sdk = new NodeSDK({
     new RedisInstrumentation(),
     new WinstonInstrumentation(),
   ],
-  serviceName: 'url-shortener',
-  resource: {
-    attributes: {
-      'service.name': 'url-shortener',
-    },
-  },
 });
 
 sdk.start();
