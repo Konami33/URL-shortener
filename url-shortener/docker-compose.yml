@@ -1,136 +1,56 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Service
-  postgres:
-    image: postgres:15
-    container_name: url_shortener_postgres
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=your_pg_user
-      - POSTGRES_PASSWORD=your_pg_password
-      - POSTGRES_DB=url_shortener
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    networks:
-      - url-shortener-net
-    restart: unless-stopped
-
-  # Redis Service
   redis:
-    image: redis:7.0
+    image: redis/redis-stack:latest
     container_name: url_shortener_redis
+    command: redis-server --requirepass your_redis_password
     ports:
       - "6379:6379"
-    command: redis-server --requirepass your_redis_password
+      - "8001:8001"
     volumes:
       - redis-data:/data
-    networks:
-      - url-shortener-net
+    # networks:
+    #   - url-shortener-net
     restart: unless-stopped
 
-# Volumes for data persistence
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib
+    container_name: otel-collector
+    ports:
+      - "4317:4317"
+      - "55681:55681"
+    volumes:
+      - ./otel-collector-config.yml:/etc/otel-collector-config.yml
+    command:
+      --config etc/otel-collector-config.yml
+
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml
+    command:
+      -config.file=/etc/tempo.yaml
+
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - tempo
+
+
 volumes:
-  mongo-data:
-  postgres-data:
   redis-data:
 
-# Network for communication between services
 networks:
   url-shortener-net:
     driver: bridge
-
-
-
-# version: '3.8'
-
-# services:
-
-#   pgbouncer:
-#     image: edoburu/pgbouncer
-#     container_name: pgbouncer
-#     environment:
-#       - DB_HOST=citus_coordinator
-#       - DB_USER=your_pg_user
-#       - DB_PASSWORD=your_pg_password
-#       - DB_NAME=url_shortener
-#       - POOL_MODE=session
-#     ports:
-#       - "6432:5432"
-#     depends_on:
-#       - citus_coordinator
-#     networks:
-#       - url-shortener-net
-      
-#   # Citus Coordinator
-#   citus_coordinator:
-#     image: citusdata/citus:12.1
-#     container_name: citus_coordinator
-#     environment:
-#       - POSTGRES_USER=your_pg_user
-#       - POSTGRES_PASSWORD=your_pg_password
-#       - POSTGRES_DB=url_shortener
-#     ports:
-#       - "5432:5432"
-#     volumes:
-#       - citus_coordinator_data:/var/lib/postgresql/data
-#     networks:
-#       - url-shortener-net
-#     restart: unless-stopped
-
-#   # Citus Worker 1
-#   citus_worker_1:
-#     image: citusdata/citus:12.1
-#     container_name: citus_worker_1
-#     environment:
-#       - POSTGRES_USER=your_pg_user
-#       - POSTGRES_PASSWORD=your_pg_password
-#       - POSTGRES_DB=url_shortener
-#     ports:
-#       - "5433:5432" # Different port to avoid conflict
-#     volumes:
-#       - citus_worker_1_data:/var/lib/postgresql/data
-#     networks:
-#       - url-shortener-net
-#     restart: unless-stopped
-
-#   # Citus Worker 2
-#   citus_worker_2:
-#     image: citusdata/citus:12.1
-#     container_name: citus_worker_2
-#     environment:
-#       - POSTGRES_USER=your_pg_user
-#       - POSTGRES_PASSWORD=your_pg_password
-#       - POSTGRES_DB=url_shortener
-#     ports:
-#       - "5434:5432" # Different port
-#     volumes:
-#       - citus_worker_2_data:/var/lib/postgresql/data
-#     networks:
-#       - url-shortener-net
-#     restart: unless-stopped
-
-#   # Redis
-#   redis:
-#     image: redis:7.0
-#     container_name: url_shortener_redis
-#     ports:
-#       - "6379:6379"
-#     command: redis-server --requirepass your_redis_password
-#     volumes:
-#       - redis-data:/data
-#     networks:
-#       - url-shortener-net
-#     restart: unless-stopped
-
-
-# volumes:
-#   citus_coordinator_data:
-#   citus_worker_1_data:
-#   citus_worker_2_data:
-#   redis-data:
-
-# networks:
-#   url-shortener-net:
-#     driver: bridge
