@@ -21,10 +21,10 @@ const resource = new Resource({
   [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
 });
 
-// Initialize Prometheus Exporter
+// Initialize Prometheus Exporter with its own server on a different port
 const prometheusExporter = new PrometheusExporter({
-  port: 9464,
-  startServer: true,
+  port: 9464, // Different port than your Express app
+  startServer: true, // Let it start its own server
 });
 
 // Create Meter Provider
@@ -55,7 +55,7 @@ const sdk = new NodeSDK({
   instrumentations: [
     // Automatically instrument HTTP and Express
     new HttpInstrumentation({
-      ignoreIncomingPaths: ['/health', '/metrics'],
+      ignoreIncomingPaths: ['/health'],
     }),
     new ExpressInstrumentation(),
     new WinstonInstrumentation(),
@@ -65,7 +65,6 @@ const sdk = new NodeSDK({
   meterProvider,
 });
 
-// Start the SDK with proper error handling
 try {
   sdk.start();
   console.log('OpenTelemetry SDK initialized');
@@ -85,6 +84,5 @@ process.on('SIGTERM', () => {
 module.exports = {
   sdk,
   meterProvider,
-  prometheusExporter,
   metrics: require('@opentelemetry/api').metrics,
 };

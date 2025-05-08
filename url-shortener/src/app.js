@@ -4,7 +4,6 @@ require('./utils/tracing');
 const express = require('express');
 const winston = require('winston');
 const { metrics } = require('@opentelemetry/api');
-const { prometheusExporter } = require('./utils/tracing');
 const config = require('./config');
 const urlRoutes = require('./routes/urlRoutes');
 
@@ -89,11 +88,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Expose metrics endpoint
-app.get('/metrics', (req, res) => {
-  return prometheusExporter.getMetricsRequestHandler()(req, res);
-});
-
 // Health Check
 app.get('/health', (req, res) => res.status(200).json({ status: 'OK' }));
 
@@ -102,6 +96,14 @@ app.locals.metrics = {
   urlOperationsCounter,
   urlRedirectCounter
 };
+
+// Add an informational endpoint about metrics
+app.get('/metrics-info', (req, res) => {
+  res.status(200).json({
+    message: "Prometheus metrics are available at http://localhost:9464/metrics",
+    note: "This is a separate server running on port 9464"
+  });
+});
 
 // Routes
 app.use('/api', urlRoutes);
@@ -115,4 +117,5 @@ app.use((err, req, res, next) => {
 // Start Server
 app.listen(config.port, () => {
   logger.info(`Server running on port ${config.port}`);
+  logger.info(`Prometheus metrics available at http://localhost:9464/metrics`);
 });
