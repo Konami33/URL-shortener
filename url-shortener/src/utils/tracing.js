@@ -1,4 +1,3 @@
-// tracing.js
 const { NodeSDK } = require('@opentelemetry/sdk-node');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-otlp-grpc');
 const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
@@ -23,8 +22,6 @@ const sdk = new NodeSDK({
 });
 
 sdk.start()
-  .then(() => console.log('Tracing initialized'))
-  .catch((error) => console.log('Error initializing tracing', error));
 
 
 process.on('SIGTERM', () => {
