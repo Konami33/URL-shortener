@@ -20,6 +20,5 @@ module.exports = {
     password: process.env.REDIS_PASSWORD,
   },
   baseUrl: process.env.BASE_URL,
-  tracing_endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT_TRACING || 'http://localhost:4318/v1/traces',
-  metrics_endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT_METRICS || 'http://localhost:4318/v1/metrics',
+  tracing_endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT_TRACING || 'http://localhost:4317',
 };

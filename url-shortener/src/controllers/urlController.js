@@ -7,6 +7,8 @@ async function createShortUrl(req, res) {
   try {
     const { longUrl } = req.body;
     span.setAttribute('longurl', longUrl);
+    span.setAttribute('http.method', req.method);
+    span.setAttribute('http.status_code', res.statusCode);
     if (!longUrl || !/^https?:\/\//.test(longUrl)) {
       span.setAttribute('ERROR', 'Invalid URL');
       return res.status(400).json({ error: 'Invalid URL' });
@@ -29,6 +31,8 @@ async function redirectToLongUrl(req, res) {
     const longUrl = await getLongUrl(shortUrlId);
     span.setAttribute('longurl', longUrl);
     span.setAttribute('shorturlId', shortUrlId);
+    span.setAttribute('http.method', req.method);
+    span.setAttribute('http.status_code', res.statusCode);
     res.redirect(301, longUrl);
   } catch (err) {
     span.recordException(err);
