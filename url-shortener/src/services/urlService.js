@@ -6,23 +6,49 @@ const { fetchUniqueKey } = require('./keyService');
 const { trace } = require('@opentelemetry/api');
 const { createCluster } = require('redis');
 
-// Create Redis Cluster client
+// Log the Redis nodes
+console.log('Redis nodes:', config.redisConfig.nodes);
+
+
+// Connect to the Redis cluster
 const redisClient = createCluster({
-  rootNodes: config.redisConfig.nodes,
-  defaults: {
-    socket: {
-      connectTimeout: 5000,  // 5s connection timeout
-      commandTimeout: 3000,  // 3s per-command timeout
-      tls: false, // Set to true if using TLS
-      reconnectStrategy: (retries) => Math.min(retries * 100, 5000), // Exponential backoff
+  rootNodes: [
+    {
+      url: `redis://${config.redisConfig.nodes[0].host}:${config.redisConfig.nodes[0].port}`,
+      socket: { 
+        tls: false,
+        reconnectStrategy: (retries) => Math.min(retries * 100, 5000)
+      }
     },
+    {
+      url: `redis://${config.redisConfig.nodes[1].host}:${config.redisConfig.nodes[1].port}`,
+      socket: {
+        tls: false,
+        reconnectStrategy: (retries) => Math.min(retries * 100, 5000)
+      }
+    },
+    {
+      url: `redis://${config.redisConfig.nodes[2].host}:${config.redisConfig.nodes[2].port}`,
+      socket: {
+        tls: false,
+        reconnectStrategy: (retries) => Math.min(retries * 100, 5000)
+      }
+    }
+  ],
+  defaults: {
     password: config.redisConfig.password,
-    ...config.redisConfig.options,
-  },
+    socket: {
+      connectTimeout: 5000,
+      commandTimeout: 3000
+    }
+  }
 });
 
 // Handle connection events
 redisClient.on('error', (err) => console.error('Redis Cluster Error:', err));
+redisClient.on('connecting', (event) => {
+  console.log('Connecting to:', event.address, event.port);
+});
 redisClient.on('connect', () => console.log('Connected to Redis Cluster'));
 redisClient.on('ready', () => console.log('Redis Cluster ready'));
 redisClient.on('reconnecting', () => console.log('Reconnecting to Redis Cluster'));
