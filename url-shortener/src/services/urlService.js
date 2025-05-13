@@ -1,17 +1,38 @@
+// src/services/urlService.js
 const redis = require('redis');
 const config = require('../config');
 const { createUrl, getUrlByShortId } = require('../models/pgUrlModel');
 const { fetchUniqueKey } = require('./keyService');
 const { trace } = require('@opentelemetry/api');
+const { createCluster } = require('redis');
 
-const redisClient = redis.createClient({
-  socket: {
-    host: config.redisConfig.host,
-    port: parseInt(config.redisConfig.port),
+// Create Redis Cluster client
+const redisClient = createCluster({
+  rootNodes: config.redisConfig.nodes,
+  defaults: {
+    socket: {
+      connectTimeout: 5000,  // 5s connection timeout
+      commandTimeout: 3000,  // 3s per-command timeout
+      tls: false, // Set to true if using TLS
+      reconnectStrategy: (retries) => Math.min(retries * 100, 5000), // Exponential backoff
+    },
+    password: config.redisConfig.password,
+    ...config.redisConfig.options,
   },
-  password: config.redisConfig.password,
 });
-redisClient.connect();
+
+// Handle connection events
+redisClient.on('error', (err) => console.error('Redis Cluster Error:', err));
+redisClient.on('connect', () => console.log('Connected to Redis Cluster'));
+redisClient.on('ready', () => console.log('Redis Cluster ready'));
+redisClient.on('reconnecting', () => console.log('Reconnecting to Redis Cluster'));
+
+
+// Connect to the cluster
+redisClient.connect().catch(err => {
+  console.error('Failed to connect to Redis Cluster:', err);
+  process.exit(1);
+});
 
 async function shortenUrl(longUrl, userId) {
   const tracer = trace.getTracer('url-service');
@@ -104,4 +125,4 @@ async function getLongUrl(shortUrlId) {
   }
 }
 
-module.exports = { shortenUrl, getLongUrl };
+module.exports = { shortenUrl, getLongUrl, redisClient };

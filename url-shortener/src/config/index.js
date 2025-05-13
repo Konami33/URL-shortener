@@ -15,9 +15,19 @@ module.exports = {
     min: 5,                         // Min connections in pool
   },
   redisConfig: {
-    host: process.env.REDIS_HOST,
-    port: process.env.REDIS_PORT,
+    // For cluster, we specify multiple nodes
+    nodes: [
+      { host: process.env.REDIS_NODE1, port: process.env.REDIS_PORT || 6379 },
+      { host: process.env.REDIS_NODE2, port: process.env.REDIS_PORT || 6379 },
+      { host: process.env.REDIS_NODE3, port: process.env.REDIS_PORT || 6379 },
+    ],
     password: process.env.REDIS_PASSWORD,
+    // Optional cluster-specific settings
+    options: {
+      scaleReads: 'slave', // Distribute reads to replicas
+      enableAutoPipelining: true,
+      maxRedirections: 16, // Maximum retry attempts for MOVED/ASK redirections
+    }
   },
   baseUrl: process.env.BASE_URL,
   tracing_endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT_TRACING || 'http://localhost:4317',
