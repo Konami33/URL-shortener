@@ -1,117 +1,38 @@
-# URL Shortener
-
-![](./Asset/system-design.drawio.svg)
+## URL Shortener
 
 
-
-```bash
-version: '3.8'
-
-services:
-  redis:
-    image: redis/redis-stack:latest
-    container_name: url_shortener_redis
-    command: redis-server --requirepass your_redis_password
-    ports:
-      - "6379:6379"
-      - "8001:8001"
-    volumes:
-      - redis-data:/data
-    restart: unless-stopped
-
-  postgres:
-    container_name: url_shortener_postgres
-    image: postgres:16-alpine
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-      - ./init-db.sh:/docker-entrypoint-initdb.d/init.sh
-    environment:
-      POSTGRES_USER: your_pg_user
-      POSTGRES_PASSWORD: your_pg_password
-      POSTGRES_DB: url_shortener
-      PGDATA: /var/lib/postgresql/data/pgdata  # Critical for Alpine compatibility
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U your_pg_user -d url_shortener']
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  pgbouncer:
-    container_name: url_shortener_pgbouncer
-    image: edoburu/pgbouncer
-    environment:
-      DB_USER: your_pg_user
-      DB_PASSWORD: your_pg_password
-      DB_HOST: postgres
-      DB_NAME: url_shortener
-      POOL_MODE: transaction
-      MAX_CLIENT_CONN: 100
-      DEFAULT_POOL_SIZE: 20
-      ADMIN_USERS: your_pg_user
-    ports:
-      - "6432:6432"  # Standard PgBouncer port
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib
-    container_name: otel-collector
-    ports:
-      - "4317:4317"
-      - "55681:55681"
-    volumes:
-      - ./otel-collector-config.yml:/etc/otel-collector-config.yml
-    command:
-      --config etc/otel-collector-config.yml
-    depends_on:
-      - tempo
-
-  tempo:
-    image: grafana/tempo:latest
-    container_name: tempo
-    ports:
-      - "3100:3100"
-    volumes:
-      - ./tempo.yaml:/etc/tempo.yaml
-    command:
-      -config.file=/etc/tempo.yaml
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    depends_on:
-      - tempo
-
-volumes:
-  redis-data:
-  pg_data:
-
-networks:
-  url-shortener-net:
-    driver: bridge
-```
-
-init-db.sh
+This is a simple URL shortener built with Node.js and PostgreSQL. To run the project in docker compose, run the following command from the config directory:
 
 ```bash
-#!/bin/bash
-set -e
-
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    -- Ensure proper permissions for your URL shortener app
-    GRANT ALL PRIVILEGES ON DATABASE url_shortener TO your_pg_user;
-    
-    -- Create extensions if needed
-    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-    
-    -- Additional users can be added here if needed
-    -- CREATE USER readonly_user WITH ENCRYPTED PASSWORD 'readonlypass';
-    -- GRANT CONNECT ON DATABASE url_shortener TO readonly_user;
-EOSQL
+docker-compose up -d
 ```
+
+Create the .env file in the root directory:
+
+```
+# .env
+PORT=5000
+PG_HOST=url_shortener_pgbouncer
+PG_PORT=6432
+PG_USER=your_pg_user
+PG_PASSWORD=your_pg_password
+PG_DATABASE=url_shortener
+REDIS_HOST=url_shortener_redis
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+BASE_URL=
+OTEL_EXPORTER_OTLP_ENDPOINT_TRACE=http://localhost:4317
+```
+
+
+Run the docker image:
+
+```
+sudo docker run \
+  --env-file .env \
+  --network config_url-shortener-net \
+  -p 5000:5000 \
+  konami98/url-shortener-backend:v5
+```
+
+> Make sure to create necessary keys in the database.
