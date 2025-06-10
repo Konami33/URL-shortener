@@ -1,7 +1,15 @@
 ## URL Shortener
 
+This is a simple URL shortener built with Node.js and PostgreSQL. 
 
-This is a simple URL shortener built with Node.js and PostgreSQL. To run the project in docker compose, run the following command from the config directory:
+![](./Asset/systemDesign.drawio%20(1).svg)
+
+
+AWS Architecture:
+
+![](./Asset/systemDesign-aws.drawio.svg)
+
+To run the project in AWS, create the necessary resources in AWS and run the following command from the config directory:
 
 ```bash
 docker-compose up -d
